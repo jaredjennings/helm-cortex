@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: {{ .Release.Namespace }}
   name: {{ include "cortex.fullname" . }}
   labels:
     {{- include "cortex.labels" . | nindent 4 }}
@@ -27,15 +28,48 @@ spec:
       serviceAccountName: {{ include "cortex.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        {{- if .Values.jobIOStorage.pvc.enabled }}
+        - name: job-io
+          persistentVolumeClaim:
+            claimName: '{{ include "cortex.fullname" . }}-job-io'
+        {{- end }}
+        - name: es-http-ca
+          secret:
+            secretName: '{{ include "cortex.fullname" .}}-es-http-ca-internal'
+            items:
+              - key: tls.crt
+                path: es-http-ca.crt
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            {{- if .Values.jobIOStorage.pvc.enabled }}
+            - name: job-io
+              mountPath: /tmp/cortex-jobs
+            {{- end }}
+            - name: es-http-ca
+              mountPath: /opt/cortex/es-http-ca
+          env:
+            - name: es_uri
+              value: 'https://{{ include "cortex.fullname" . }}-es-http:9200'
+            - name: es_http_ca_cert
+              value: "/opt/cortex/es-http-ca/es-http-ca.crt"
+            - name: es_username
+              value: "elastic" {{/* FIXME? */}}
+            - name: es_password
+              valueFrom:
+                secretKeyRef:
+                  name: '{{ include "cortex.fullname" . }}-es-elastic-user'
+                  key: elastic
+            - name: kubernetes_job_pvc
+              value: '{{ include "cortex.fullname" .}}-job-io'
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 9001
               protocol: TCP
           livenessProbe:
             httpGet:

@@ -1,0 +1,18 @@
+{{- if .Values.jobIOStorage.pvc.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: '{{ include "cortex.fullname" . }}-job-io'
+  labels:
+    {{- include "cortex.labels" . | nindent 4 }}
+spec:
+  storageClassName: {{ .Values.jobIOStorage.pvc.storageClass }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.jobIOStorage.pvc.size }}
+{{- else -}}
+{{- fail "Job I/O storage using other than a persistent volume claim is not yet supported by this chart." -}}
+{{- end -}}
