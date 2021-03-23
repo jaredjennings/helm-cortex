@@ -1,4 +1,5 @@
-{{- if ((.Capabilities.APIVersions.Has "elasticsearch.k8s.elastic.co/v1") | or .Values.ignoreMissingECK) -}}
+{{- if .Values.elasticsearch.eck.enabled }}
+{{- if ((.Capabilities.APIVersions.Has "elasticsearch.k8s.elastic.co/v1") | or .Values.elasticsearch.eck.ignoreMissing) -}}
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
@@ -7,13 +8,6 @@ metadata:
   labels:
     {{- include "cortex.labels" . | nindent 4 }}
 spec:
-  version: {{ .Values.elasticsearch.version }}
-  nodeSets:
-  - name: default
-    count: 1
-    config:
-      node.store.allow_mmap: false
-
-{{- else -}}
-{{ fail "Need Elasticsearch Cloud on Kubernetes (ECK) installed. This is a cluster-wide decision. See <https://artifacthub.io/packages/helm/elastic/eck-operator>." }}
+  {{- .Values.elasticsearch.eck.elasticSearchSpec | nindent 2 }}
+{{- end }}
 {{- end }}

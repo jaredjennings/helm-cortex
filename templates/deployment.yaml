@@ -32,11 +32,11 @@ spec:
         {{- if .Values.jobIOStorage.pvc.enabled }}
         - name: job-io
           persistentVolumeClaim:
-            claimName: '{{ include "cortex.fullname" . }}-job-io'
+            claimName: {{ printf "%s-%s" (include "cortex.fullname" .) "job-io" | quote }}
         {{- end }}
         - name: es-http-ca
           secret:
-            secretName: '{{ include "cortex.fullname" .}}-es-http-ca-internal'
+            secretName: {{ default .Values.caCertSecret (include "cortex.elasticCACertSecretName" .) }}
             items:
               - key: tls.crt
                 path: es-http-ca.crt
@@ -54,17 +54,18 @@ spec:
             - name: es-http-ca
               mountPath: /opt/cortex/es-http-ca
           env:
-            - name: es_uri
-              value: 'https://{{ include "cortex.fullname" . }}-es-http:9200'
             - name: es_http_ca_cert
+              {{/* this is from the volume above */}}
               value: "/opt/cortex/es-http-ca/es-http-ca.crt"
-            - name: es_username
-              value: "elastic" {{/* FIXME? */}}
+            - name: es_uri
+              value: {{ default .Values.elasticsearch.url (include "cortex.elasticURL" .) }}
             - name: es_password
               valueFrom:
                 secretKeyRef:
-                  name: '{{ include "cortex.fullname" . }}-es-elastic-user'
-                  key: elastic
+                  name: {{ default .Values.elasticsearch.secret (include "cortex.elasticUserSecretName" .) }}
+                  key: {{ .Values.elasticsearch.username }}
+            - name: es_username
+              value: {{ .Values.elasticsearch.username }}
             - name: kubernetes_job_pvc
               value: '{{ include "cortex.fullname" .}}-job-io'
           ports:

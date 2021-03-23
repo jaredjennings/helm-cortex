@@ -78,10 +78,60 @@ tolerations: []
 
 affinity: {}
 
-ignoreMissingECK: false
-
 elasticsearch:
-  version: "7.11.2"
+  # Elasticsearch set up by this chart using Elastic Cloud on Kubernetes (ECK)
+  eck:
+    # If true, this chart will set up an Elasticsearch cluster using ECK.
+    enabled: true
+    # If true, and ECK appears to be missing, we'll continue
+    # anyway. Useful for `helm template`.
+    ignoreMissing: false
+    # See
+    # https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-deploy-elasticsearch.html
+    # for a start
+    elasticSearchSpec: |
+      version: "7.11.2"
+      nodeSets:
+        - name: default
+          count: 1
+          config:
+            node.store.allow_mmap: false
+  # Elasticsearch set up outside the auspices of this chart. See more
+  # values to set below.
+  external:
+    enabled: false
+  #
+  # If ECK is enabled, you don't need to mess with the rest of these.
+  # -----------------------------------------------------------------
+  #
+  # Username to use when connecting to Elasticsearch.
+  username: elastic
+  # The name of an opaque secret, whose data is a mapping (dictionary,
+  # object) with the username as key and the password as value. If ECK
+  # is enabled, the default is the secret created by ECK. If ECK is
+  # not enabled, and this is not set, a secret will be created using
+  # the given `password`, below.
+  userSecret: ""
+  # A secret is created and used for Elasticsearch login, with this
+  # password and the username above, if ECK is not enabled and
+  # userSecret is not set.
+  password: ""
+  # Where to reach the Elasticsearch cluster. Probably
+  # "https://something:9200". If ECK is enabled, the default is the
+  # service created by ECK.
+  url: ""
+  # A CA cert to trust when connecting to Elasticsearch using
+  # HTTPS. The secret should contain a key "tls.crt" whose value is
+  # the PEM-encoded cert. If ECK is enabled, the default is the secret
+  # created by ECK. If ECK is not enabled, and this is not set, a
+  # secret will be created using the `caCert` below.
+  caCertSecret: ""
+  # A secret is created and used for CA cert trusting, using a
+  # PEM-encoded cert from this value, if ECK is not enabled and
+  # caCertSecret is not set.
+  caCert: ""
+
+
 
 # Cortex sends inputs to analyzers and receives reports back via a
 # persistent volume it shares with the jobs. These are the parameters
