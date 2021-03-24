@@ -34,12 +34,14 @@ spec:
           persistentVolumeClaim:
             claimName: {{ printf "%s-%s" (include "cortex.fullname" .) "job-io" | quote }}
         {{- end }}
+        {{- if .Values.elasticsearch.tls }}
         - name: es-http-ca
           secret:
             secretName: {{ default .Values.caCertSecret (include "cortex.elasticCACertSecretName" .) }}
             items:
               - key: tls.crt
                 path: es-http-ca.crt
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -51,12 +53,16 @@ spec:
             - name: job-io
               mountPath: /tmp/cortex-jobs
             {{- end }}
+            {{- if .Values.elasticsearch.tls }}
             - name: es-http-ca
               mountPath: /opt/cortex/es-http-ca
+            {{- end }}
           env:
+            {{- if .Values.elasticsearch.tls }}
             - name: es_http_ca_cert
               {{/* this is from the volume above */}}
               value: "/opt/cortex/es-http-ca/es-http-ca.crt"
+            {{- end }}
             - name: es_uri
               value: {{ default .Values.elasticsearch.url (include "cortex.elasticURL" .) }}
             - name: es_password
