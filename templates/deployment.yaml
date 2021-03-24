@@ -62,7 +62,7 @@ spec:
             - name: es_password
               valueFrom:
                 secretKeyRef:
-                  name: {{ default .Values.elasticsearch.secret (include "cortex.elasticUserSecretName" .) }}
+                  name: {{ default .Values.elasticsearch.userSecret (include "cortex.elasticUserSecretName" .) }}
                   key: {{ .Values.elasticsearch.username }}
             - name: es_username
               value: {{ .Values.elasticsearch.username }}
