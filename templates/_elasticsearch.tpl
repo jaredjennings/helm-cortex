@@ -1,5 +1,3 @@
-{{/* Elasticsearch cluster object names, if we control the elasticsearch */}}
-
 {{- define "cortex.elasticUserSecretName" -}}
 {{- if .Values.elasticsearch.eck.enabled -}}
 {{- if .Values.elasticsearch.eck.name -}}

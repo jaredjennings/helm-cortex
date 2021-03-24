@@ -33,6 +33,13 @@ securityContext: {}
   #   drop:
   #   - ALL
   # readOnlyRootFilesystem: true
+
+  # Cortex's entrypoint script has to run as root because it chowns
+  # some stuff while starting up. This could perhaps be changed for
+  # the better in the case of Kubernetes by using an InitContainer,
+  # but at this writing that hasn't happened yet. In any case, the
+  # serving process does not run as root.
+
   # runAsNonRoot: true
   # runAsUser: 1000
 
@@ -78,19 +85,24 @@ tolerations: []
 
 affinity: {}
 
+# If no elasticsearch method is enabled, local indexing will be used;
+# see localIndexStorage below.
 elasticsearch:
   # Elasticsearch set up outside this chart using Elastic Cloud on
   # Kubernetes (ECK)
   eck:
     # If true, names of resources (e.g. secrets, services) used will
-    # all be formed using the elasticsearchName below.
-    enabled: true
+    # all be formed using the name below, unless you override them.
+    enabled: false
     # Specify the name of the Elasticsearch custom resource, which
     # must have been successfully created before using this chart.
     name: ""
   # Elasticsearch set up outside this chart, with less
   # assumptions. You will need to set more values; read on below.
   external:
+    # Set this to true if you have an Elasticsearch server or cluster
+    # that was not set up with ECK. You'll need to set other
+    # elasticsearch.* values.
     enabled: false
   # If ECK is used, you don't need to mess with the rest of these.
   # -----------------------------------------------------------------
