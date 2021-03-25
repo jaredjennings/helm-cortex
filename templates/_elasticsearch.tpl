@@ -3,12 +3,14 @@
 {{- if .Values.elasticsearch.eck.name -}}
 {{ printf "%s-%s" .Values.elasticsearch.eck.name "es-elastic-user" | quote }}
 {{- else -}}
-{{ fail "User secret: when ECK is enabled you must supply a value for the elasticsearch.eck.name." }}
+{{ fail "While trying to construct user secret name: when elasticsearch.eck.enabled is true, you must provide elasticsearch.eck.name." }}
 {{- end -}}
-{{- else if .Values.elasticsearch.external.enabled -}}
-{{ printf "%s-%s" (include "cortex.fullname" .) "ext-es-user-secret" | quote }}
+{{- else -}}{{- /* Well this is stilted isn't it */ -}}
+{{- if .Values.elasticsearch.userSecret -}}
+{{ .Values.elasticsearch.userSecret }}
 {{- else -}}
-{{ fail "User secret: Some kind of Elasticsearch must be enabled." }}
+{{ fail "When elasticsearch.eck.enabled is false, you must provide elasticsearch.userSecret." }}
+{{- end -}}
 {{- end -}}
 {{- end }}
 
