@@ -39,7 +39,7 @@ spec:
           secret:
             secretName: {{ default .Values.caCertSecret (include "cortex.elasticCACertSecretName" .) }}
             items:
-              - key: tls.crt
+              - key: {{ .Values.caCertSecretMappingKey }}
                 path: es-http-ca.crt
         {{- end }}
       containers:

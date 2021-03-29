@@ -93,26 +93,30 @@ solution to https://github.com/TheHive-Project/TheHive/issues/1224.
 
 ## Elasticsearch
 
-| Parameter                      | Description                                                          | Default             |
-| ---------                      | -----------                                                          | -------             |
-| elasticsearch.eck.enabled      | Set this to true if you used ECK to set up an Elasticsearch cluster. | false               |
-| elasticsearch.eck.name         | Set to the name of the `Elasticsearch` custom resource.              | nil                 |
-| elasticsearch.external.enabled | Set this to true if you have a non-ECK Elasticsearch server/cluster. | false               |
-| elasticsearch.username         | Username with which to authenticate to Elasticsearch.                | elastic<sup>1,2</sup> |
-| elasticsearch.userSecret       | Secret containing the password for the named user.                   | nil<sup>1</sup>     |
-| elasticsearch.url              | URL to Elasticsearch server/cluster.                                 | nil<sup>1</sup>     |
-| elasticsearch.tls              | Set this to true to provide a CA cert to trust.                      | true<sup>1</sup>    |
-| elasticsearch.caCertSecret     | Secret containing the CA certificate to trust.                       | nil<sup>1,3</sup>     |
-| elasticsearch.caCert           | PEM text of the CA cert to trust.                                    | nil<sup>1,3</sup>   |
+| Parameter                            | Description                                                            | Default               |
+| ---------                            | -----------                                                            | -------               |
+| elasticsearch.eck.enabled            | Set this to true if you used ECK to set up an Elasticsearch cluster.   | false                 |
+| elasticsearch.eck.name               | Set to the name of the `Elasticsearch` custom resource.                | nil                   |
+| elasticsearch.external.enabled       | Set this to true if you have a non-ECK Elasticsearch server/cluster.   | false                 |
+| elasticsearch.username               | Username with which to authenticate to Elasticsearch.                  | elastic<sup>1,2</sup> |
+| elasticsearch.userSecret             | Secret containing the password for the named user.                     | nil<sup>1</sup>       |
+| elasticsearch.url                    | URL to Elasticsearch server/cluster.                                   | nil<sup>1</sup>       |
+| elasticsearch.tls                    | Set this to true to provide a CA cert to trust.                        | true<sup>1</sup>      |
+| elasticsearch.caCertSecret           | Secret containing the CA certificate to trust.                         | nil<sup>1,3</sup>     |
+| elasticsearch.caCertSecretMappingKey | Name of the key in the caCertSecret whose value is the CA certificate. | "ca.crt"<sup>1,3</sup>     |
+| elasticsearch.caCert                 | PEM text of the CA cert to trust.                                      | nil<sup>1,3</sup>     |
 
 Notes:
 
-1. If you use ECK to set up an Elasticsearch cluster, you don't need to specify this.
-2. The user secret should be an opaque secret, with data whose key is the username and value is the password.
-3. The CA cert secret should be an opaque secret with data whose key
-   is 'tls.crt' and value is the PEM-encoded certificate. If you don't
-   have such a secret already, provide the PEM-encoded certificate as
-   the value of `elasticsearch.caCert` and the secret will be
+1. If you use ECK to set up an Elasticsearch cluster, you don't need
+   to specify this.
+2. The user secret should be an opaque secret, with data whose key is
+   the username and value is the password.
+3. The `caCertSecret` should be an opaque secret with a key named by
+   `caCertSecretMappingKey` whose value is the PEM-encoded
+   certificate. It could have other keys and values. If you don't have
+   such a secret already, you can provide the PEM-encoded certificate
+   itself as the `elasticsearch.caCert` value, and the secret will be
    constructed for you.
    
 ## Job I/O storage

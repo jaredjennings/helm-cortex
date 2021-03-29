@@ -25,7 +25,7 @@
 {{- define "cortex.elasticCACertSecretName" -}}
 {{- if .Values.elasticsearch.eck.enabled -}}
 {{- if .Values.elasticsearch.eck.name -}}
-{{ printf "%s-%s" (.Values.elasticsearch.eck.name) "es-http-ca-internal" | quote }}
+{{ printf "%s-%s" (.Values.elasticsearch.eck.name) "es-http-certs-public" | quote }}
 {{- else -}}
 {{ fail "CA cert secret: when ECK is enabled you must supply a value for elasticsearch.eck.name." }}
 {{- end -}}
