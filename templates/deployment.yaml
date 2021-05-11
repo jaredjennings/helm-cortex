@@ -48,8 +48,10 @@ spec:
             {{- end }}
             {{- include "cortex.caCertVolumeMounts" . | nindent 12 }}
           env:
-            - name: trusted_ca_cert_files
-              value: {{ include "cortex.caCertFilenamesCommaSeparated" . | quote }}
+            - name: ws_trusted_ca_cert_files
+              value: {{ include "cortex.wsCACertFilenamesCommaSeparated" . | quote }}
+            - name: es_trusted_ca_cert_files
+              value: {{ include "cortex.esCACertFilenamesCommaSeparated" . | quote }}
             - name: es_uri
               value: {{ default .Values.elasticsearch.url (include "cortex.elasticURL" .) }}
             - name: es_password
