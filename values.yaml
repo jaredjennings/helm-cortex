@@ -176,3 +176,14 @@ analyzerURLs:
   - "https://download.thehive-project.org/analyzers.json"
 responderURLs:
   - "https://download.thehive-project.org/responders.json"
+
+# You can provide extra configuration to Cortex that isn't handled by
+# this chart - such as authentication/SSO - by writing it into a
+# Secret and referring to it from here.
+extraCortexConfig:
+  enabled: false
+  # The name of a Kubernetes Secret containing extra config files as a
+  # map of the form filename: contents.
+  secretName: cortex-extra-config
+  # The names of the contained config files.
+  mapKeys: []

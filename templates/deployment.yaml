@@ -45,6 +45,11 @@ spec:
           emptyDir: {}
         {{- end }}
         {{- include "cortex.wsCACertVolumes" . | nindent 8 }}
+        {{- if .Values.extraCortexConfig.enabled }}
+        - name: extra-config
+          secret:
+            secretName: {{ .Values.extraCortexConfig.secretName | quote }}
+        {{- end }}
       initContainers:
         # This templating, done at runtime rather than install time,
         # is done so that the non-secret parts of the config file can
@@ -130,6 +135,10 @@ spec:
             - name: es-trust-store
               mountPath: {{ include "cortex.esTrustStoreDir" . | quote }}
             {{ include "cortex.wsCACertVolumeMounts" . | nindent 12 }}
+            {{- if .Values.extraCortexConfig.enabled }}
+            - name: extra-config
+              mountPath: /etc/cortex/extra
+            {{- end }}
           env:
             # we did the config in our configmap and initcontainers
             - name: no_config

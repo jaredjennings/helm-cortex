@@ -8,7 +8,11 @@ data:
   We will fill in secret values by replacing @@strings@@ with sed in an InitContainer.
   We will construct the trust store using another InitContainer.
   */}}
+  # Avoid getting configuration, with secrets, catted out to
+  # logs. That is a dev thing to do, not a prod thing to do.
   application.conf.tmpl: |
+    include file("/etc/cortex/main.conf")
+  main.conf.tmpl: |
     play.http.secret.key="@@PLAY_HTTP_SECRET_KEY@@"
     search {
         uri = {{ .Values.elasticsearch.url | default (include "cortex.elasticURL" .) | quote }}
@@ -45,10 +49,9 @@ data:
     ]
 
     {{- include "cortex.wsCACertPlayWSConfig" . | nindent 4 }}
-    
-    {{- range $k, $v := .Values.extraCortexConfigs }}
-    {{- $notmpl := regexReplaceAll ".tmpl$" $k "" }}
-    include file("/etc/cortex/{{ $notmpl }}")
+
+    {{- range .Values.extraCortexConfig.mapKeys }}
+    include file("/etc/cortex/extra/{{ . }}")
     {{- end }}
   logback.xml.tmpl: |
     <?xml version="1.0" encoding="UTF-8"?>
