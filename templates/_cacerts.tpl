@@ -1,21 +1,54 @@
-{{- define "cortex.caCertVolumes" }}
+{{- define "cortex.esCACertDir" -}}
+/tmp/es-http-ca
+{{- end }}
+{{- define "cortex.esCACert" -}}
+{{ printf "%s/ca.crt" (include "cortex.esCACertDir" .) }}
+{{- end }}
+{{- define "cortex.esCACertVolumes" -}}
 {{- if .Values.elasticsearch.tls }}
 - name: es-http-ca
   secret:
     secretName: {{ default .Values.elasticsearch.caCertSecret (include "cortex.elasticCACertSecretName" .) }}
     items:
       - key: {{ .Values.elasticsearch.caCertSecretMappingKey | quote }}
-        path: es-http-ca.crt
+        path: "ca.crt"
 {{- end }}
-{{/* may need unique filenames rather than "ca.crt" for every one, so do that */}}
+{{- end }}
+{{- define "cortex.esCACertVolumeMounts" -}}
+- name: es-http-ca
+  mountPath: {{ include "cortex.esCACertDir" . | quote }}
+{{- end }}
+
+
+{{/*
+Container-local path for JKS-format Elasticsearch trust store.
+This is JKS-format because elastic4play requires a keyStore to be
+provided in order for the trustStore setting to take effect, and a
+trust store can serve as an empty keystore too. This will need to be
+changed if Elasticsearch client certs are ever supported.
+*/}}
+{{- define "cortex.esTrustStoreDir" -}}
+/etc/cortex/es-trust
+{{- end }}
+{{- define "cortex.esTrustStore" -}}
+{{ printf "%s/store" (include "cortex.esTrustStoreDir" .) }}
+{{- end }}
+{{- define "cortex.esTrustStoreVolumeMount" -}}
+- name: es-trust-store
+  mountPath: {{ include "cortex.esTrustStoreDir" . }}
+{{- end }}
+
+
+
+{{- define "cortex.wsCACertVolumes" -}}
 {{- range .Values.trustRootCertsInSecrets }}
-{{ $name := printf "tls-ca-s-%s" . }}
+{{- $name := printf "tls-ca-s-%s" . }}
 - name: {{ $name | quote }}
   secret:
     secretName: {{ . | quote }}
     items:
       - key: "ca.crt"
-        path: {{ printf "%s.crt" $name | quote }}
+        path: "ca.crt"
 {{- end }}
 {{- range .Values.trustRootCerts }}
 {{- $shortsum := . | sha256sum | substr 0 10 }}
@@ -25,44 +58,43 @@
     secretName: {{ printf "%s-ca-%s" (include "cortex.fullname" $) $shortsum | quote }}
     items:
       - key: "ca.crt"
-        path: {{ printf "%s.crt" $name | quote }}
+        path: "ca.crt"
 {{- end }}
 {{- end }}
 
-{{- define "cortex.caCertVolumeMounts" }}
-{{- if .Values.elasticsearch.tls }}
-- name: es-http-ca
-  mountPath: /opt/cortex/es-http-ca
-{{- end }}
-{{- range .Values.trustRootCertsInSecrets }}
-- name: {{ printf "tls-ca-s-%s" . | quote }}
-  mountPath: {{ printf "/opt/cortex/tls-ca-s-%s" . | quote }}
-{{- end }}
-{{- range .Values.trustRootCerts }}
-{{- $shortsum := . | sha256sum | substr 0 10 }}
-- name: {{ printf "tls-ca-%s" $shortsum | quote}}
-  mountPath: {{ printf "/opt/cortex/tls-ca-%s" $shortsum | quote }}
-{{- end }}
-{{- end }}
 
-{{- define "cortex.esCACertFilenamesCommaSeparated" }}
-{{- $all := list "" }}
-{{- if .Values.elasticsearch.tls }}
-{{- $all = append $all "/opt/cortex/es-http-ca/es-http-ca.crt" }}
-{{- end }}
-{{- $all | compact | join "," }}
-{{- end }}
-
-{{- define "cortex.wsCACertFilenamesCommaSeparated" }}
-{{- $all := list "" }}
+{{- define "cortex.wsCACertVolumeMounts" -}}
 {{- range .Values.trustRootCertsInSecrets }}
 {{ $name := printf "tls-ca-s-%s" . }}
-{{- $all = append $all (printf "/opt/cortex/%s/%s.crt" $name $name) }}
+- name: {{ $name | quote }}
+  mountPath: {{ printf "/etc/cortex/tls/%s" $name | quote }}
 {{- end }}
 {{- range .Values.trustRootCerts }}
 {{- $shortsum := . | sha256sum | substr 0 10 }}
 {{- $name := printf "tls-ca-%s" $shortsum }}
-{{- $all = append $all (printf "/opt/cortex/%s/%s.crt" $name $name) }}
+- name: {{ $name | quote }}
+  mountPath: {{ printf "/etc/cortex/tls/%s" $name | quote }}
 {{- end }}
-{{- $all | compact | join "," }}
+{{- end }}
+
+
+{{- define "cortex.wsCACertFilenamesPlayWSStoreLines" }}
+{{- range .Values.trustRootCertsInSecrets }}
+{{ $name := printf "tls-ca-s-%s" . }}
+{{ printf "{ path: \"/etc/cortex/tls/%s/ca.crt\", type: \"PEM\" }" $name }}
+{{- end }}
+{{- range .Values.trustRootCerts }}
+{{- $shortsum := . | sha256sum | substr 0 10 }}
+{{- $name := printf "tls-ca-%s" $shortsum }}
+{{ printf "{ path: \"/etc/cortex/tls/%s/ca.crt\", type: \"PEM\" }" $name }}
+{{- end }}
+{{- end }}
+
+
+{{- define "cortex.wsCACertPlayWSConfig" -}}
+{{- if (or .Values.trustRootCerts .Values.trustRootCertsInSecrets) }}
+play.ws.ssl.trustManager.stores = [
+{{- include "cortex.wsCACertFilenamesPlayWSStoreLines" . | nindent 2 }}
+]
+{{- end }}
 {{- end }}

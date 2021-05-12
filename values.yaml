@@ -171,3 +171,8 @@ trustRootCertsInSecrets: []
 # chart will create Secrets containing the certs. Each item should be
 # the text of a single PEM-encoded certificate.
 trustRootCerts: []
+
+analyzerURLs:
+  - "https://download.thehive-project.org/analyzers.json"
+responderURLs:
+  - "https://download.thehive-project.org/responders.json"

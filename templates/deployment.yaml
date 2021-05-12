@@ -32,9 +32,87 @@ spec:
         {{- if .Values.jobIOStorage.pvc.enabled }}
         - name: job-io
           persistentVolumeClaim:
-            claimName: {{ printf "%s-%s" (include "cortex.fullname" .) "job-io" | quote }}
+            claimName: {{ include "cortex.jobIOPVC" . | quote }}
         {{- end }}
-        {{- include "cortex.caCertVolumes" . | nindent 8 }}
+        - name: config-templates
+          configMap:
+            name: {{ include "cortex.templatesConfigMapName" . }}
+        - name: etc-cortex
+          emptyDir: {}
+        {{- if .Values.elasticsearch.tls }}
+        {{- include "cortex.esCACertVolumes" . | nindent 8 }}
+        - name: es-trust-store
+          emptyDir: {}
+        {{- end }}
+        {{- include "cortex.wsCACertVolumes" . | nindent 8 }}
+      initContainers:
+        # This templating, done at runtime rather than install time,
+        # is done so that the non-secret parts of the config file can
+        # be more easily seen.
+        - name: config-templates
+          {{- /* Image is hardcoded. FIXME? */}}
+          image: busybox
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config-templates
+              mountPath: /tmp/templates
+            - name: etc-cortex
+              mountPath: /tmp/cortex
+          # For each @@FOO@@ in the config file set up in the
+          # configmap, there must be a FOO in this env. Values should
+          # be shell-safe, natch.
+          env:
+            - name: PLAY_HTTP_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cortex.playsecretname" . | quote }}
+                  key: secret
+            # There are no private keys to protect in this trust
+            # store, so its password need not actually secure it.
+            - name: ES_TRUST_STORE_PASSWORD
+              value: changeit
+            - name: ES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.elasticsearch.userSecret | default (include "cortex.elasticUserSecretName" .) | quote }}
+                  key: {{ .Values.elasticsearch.username | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              cd /tmp/cortex; for x in /tmp/templates/*; do
+                  if echo "$x" | grep ".tmpl\$"; then
+                      out=$$(basename $x | sed "s/.tmpl$//")
+                      cat $x | \
+                         sed "s/@@PLAY_HTTP_SECRET_KEY@@/$PLAY_HTTP_SECRET_KEY/g" | \
+                         sed "s/@@ES_TRUST_STORE_PASSWORD@@/$ES_TRUST_STORE_PASSWORD/g" | \
+                         sed "s/@@ES_PASSWORD@@/$ES_PASSWORD/g" | \
+                      cat > "$out"
+                  else
+                      cp $x $(basename $x)
+                  fi
+                done
+        {{- if .Values.elasticsearch.tls }}
+        - name: trust-store
+          {{- /* Image is hardcoded. FIXME? */}}
+          image: openjdk:11
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            {{- include "cortex.esTrustStoreVolumeMount" . | nindent 12 }}
+            {{- include "cortex.esCACertVolumeMounts" . | nindent 12 }}
+          env:
+            - name: ES_TRUST_STORE_PASSWORD
+              value: changeit
+          command:
+            - sh
+            - -c
+            - |
+              keytool -importcert -keystore {{ include "cortex.esTrustStore" . | quote }} \
+                      -file {{ include "cortex.esCACert" . | quote }} \
+                      -alias es-http-ca \
+                      -storepass "$ES_TRUST_STORE_PASSWORD" \
+                      -noprompt
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -42,27 +120,20 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           volumeMounts:
+            - name: etc-cortex
+              mountPath: /etc/cortex
             {{- if .Values.jobIOStorage.pvc.enabled }}
             - name: job-io
+              {{- /* If the default value of JOB_DIRECTORY changes in the Cortex entrypoint script, change this */}}
               mountPath: /tmp/cortex-jobs
             {{- end }}
-            {{- include "cortex.caCertVolumeMounts" . | nindent 12 }}
+            - name: es-trust-store
+              mountPath: {{ include "cortex.esTrustStoreDir" . | quote }}
+            {{ include "cortex.wsCACertVolumeMounts" . | nindent 12 }}
           env:
-            - name: ws_trusted_ca_cert_files
-              value: {{ include "cortex.wsCACertFilenamesCommaSeparated" . | quote }}
-            - name: es_trusted_ca_cert_files
-              value: {{ include "cortex.esCACertFilenamesCommaSeparated" . | quote }}
-            - name: es_uri
-              value: {{ default .Values.elasticsearch.url (include "cortex.elasticURL" .) }}
-            - name: es_password
-              valueFrom:
-                secretKeyRef:
-                  name: {{ default .Values.elasticsearch.userSecret (include "cortex.elasticUserSecretName" .) }}
-                  key: {{ .Values.elasticsearch.username }}
-            - name: es_username
-              value: {{ .Values.elasticsearch.username }}
-            - name: kubernetes_job_pvc
-              value: '{{ include "cortex.fullname" .}}-job-io'
+            # we did the config in our configmap and initcontainers
+            - name: no_config
+              value: "1"
           ports:
             - name: http
               containerPort: 9001

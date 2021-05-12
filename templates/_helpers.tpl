@@ -24,6 +24,13 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
+Name the Play framework secret.
+*/}}
+{{- define "cortex.playsecretname" -}}
+{{ include "cortex.fullname" . -}} -play-secret
+{{- end }}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "cortex.chart" -}}
@@ -59,4 +66,22 @@ Create the name of the service account to use
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
+{{- end }}
+
+{{/*
+Create the name of the persistent volume claim to use for job I/O
+*/}}
+{{- define "cortex.jobIOPVC" -}}
+{{ printf "%s-job-io" (include "cortex.fullname" .) }}
+{{- end }}
+
+{{/*
+If the Cortex entrypoint default value of JOB_DIRECTORY changes, change this
+*/}}
+{{- define "cortex.jobDir" -}}
+/tmp/cortex-jobs
+{{- end }}
+
+{{- define "cortex.templatesConfigMapName" -}}
+{{ printf "%s-etc-c-tmpl" (include "cortex.fullname" .) }}
 {{- end }}

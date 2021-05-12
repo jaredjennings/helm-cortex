@@ -3,7 +3,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: '{{ include "cortex.fullname" . }}-job-io'
+  name: {{ include "cortex.jobIOPVC" . | quote }}
   labels:
     {{- include "cortex.labels" . | nindent 4 }}
 spec:

@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ include "cortex.templatesConfigMapName" . | quote }}
+data:
+  {{/*
+  We will fill in secret values by replacing @@strings@@ with sed in an InitContainer.
+  We will construct the trust store using another InitContainer.
+  */}}
+  application.conf.tmpl: |
+    play.http.secret.key="@@PLAY_HTTP_SECRET_KEY@@"
+    search {
+        uri = {{ .Values.elasticsearch.url | default (include "cortex.elasticURL" .) | quote }}
+        {{- if .Values.elasticsearch.tls }}
+        keyStore {
+            path={{ include "cortex.esTrustStore" . | quote }}
+            type="JKS"
+            password="@@ES_TRUST_STORE_PASSWORD@@"
+        }
+        trustStore {
+            path={{ include "cortex.esTrustStore" . | quote }}
+            type="JKS"
+            password="@@ES_TRUST_STORE_PASSWORD@@"
+        }
+        {{- end }}
+        user = {{ .Values.elasticsearch.username | quote }}
+        password = "@@ES_PASSWORD@@"
+    }
+    job {
+        directory = {{ include "cortex.jobDir" . }}
+        kubernetes {
+            persistentVolumeClaimName = {{ include "cortex.jobIOPVC" . | quote }}
+        }
+    }
+    analyzer.urls = [
+      {{- range .Values.analyzerURLs }}
+      {{ . | quote }}
+      {{- end }}
+    ]
+    responder.urls = [
+      {{- range .Values.responderURLs }}
+      {{ . | quote }}
+      {{- end }}
+    ]
+
+    {{- include "cortex.wsCACertPlayWSConfig" . | nindent 4 }}
+    
+    {{- range $k, $v := .Values.extraCortexConfigs }}
+    {{- $notmpl := regexReplaceAll ".tmpl$" $k "" }}
+    include file("/etc/cortex/{{ $notmpl }}")
+    {{- end }}
+  logback.xml.tmpl: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <configuration debug="false">
+        <!-- stdout only, no colors -->
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%date [%level] from %logger in %thread - %message%n%xException</pattern>
+            </encoder>
+        </appender>
+        <appender name="ASYNCSTDOUT" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="STDOUT"/>
+        </appender>
+        <logger name="play" level="INFO"/>
+        <logger name="application" level="INFO"/>
+        <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF"/>
+        <root level="INFO">
+            <appender-ref ref="ASYNCSTDOUT"/>
+        </root>
+    </configuration>
+    
