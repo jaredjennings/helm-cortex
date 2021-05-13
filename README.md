@@ -145,3 +145,40 @@ Notes:
    detonate in a sandbox a large PDF found attached to a dubious
    email. When everything goes properly, files are deleted after the
    job is over.
+
+
+## Outgoing web service (play.ws) connections
+
+Cortex makes TLS connections to web services, prominently including
+servers involved in single signon (SSO). Set parameters here to
+determine which CAs it will trust when it does that. If nothing is
+set, the default set of public CAs provided by the Java runtime
+environment will be used.
+
+| Parameter               | Description                                       | Default |
+| --                      | --                                                | --      |
+| trustRootCertsInSecrets | Names of one or more Secrets containing CA certs. | []      |
+| trustRootCerts          | PEM-encoded CA certs to trust.                    | []      |
+
+
+## Analyzer and responder URLs
+
+Use these settings to indicate where the catalogs of available Cortex
+neuron Docker images are located. See Cortex documentation for more
+details.
+
+| Parameter     | Description                     | Default                                                  |
+| analyzerURLs  | List of URLs to analyzer lists  | ["https://download.thehive-project.org/analyzers.json"]  |
+| responderURLs | List of URLs to responder lists | ["https://download.thehive-project.org/responders.json"] |
+
+
+## Extra Cortex configuration
+
+You can provide extra configuration to Cortex that isn't handled by
+this chart - such as authentication/SSO - by writing it into a Secret
+and referring to it from here. 
+
+| Parameter                    | Description                                  | Default |
+| extraCortexConfig.enabled    | Boolean to enable extra config.              | false   |
+| extraCortexConfig.secretName | Name of secret containing extra configs.     | ""      |
+| extraCortexConfig.mapKeys    | Names of extra config files in given secret. | []      |
