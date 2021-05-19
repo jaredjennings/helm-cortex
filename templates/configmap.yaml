@@ -50,8 +50,8 @@ data:
 
     {{- include "cortex.wsCACertPlayWSConfig" . | nindent 4 }}
 
-    {{- range .Values.extraCortexConfig.mapKeys }}
-    include file("/etc/cortex/extra/{{ . }}")
+    {{- range $k, $v := .Values.extraCortexConfigurations }}
+    include file("/etc/cortex/extra/{{ $k }}")
     {{- end }}
   logback.xml.tmpl: |
     <?xml version="1.0" encoding="UTF-8"?>

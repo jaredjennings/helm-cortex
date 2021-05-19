@@ -31,6 +31,13 @@ Name the Play framework secret.
 {{- end }}
 
 {{/*
+Name the extra config secret
+*/}}
+{{- define "cortex.extraconfigsecret" -}}
+{{ include "cortex.fullname" . -}} -extra-config
+{{- end }}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "cortex.chart" -}}

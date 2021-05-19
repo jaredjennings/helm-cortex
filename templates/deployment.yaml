@@ -37,6 +37,11 @@ spec:
         - name: config-templates
           configMap:
             name: {{ include "cortex.templatesConfigMapName" . }}
+        {{- if .Values.extraCortexConfigurations }}
+        - name: etc-cortex-extra
+          secret:
+            secretName: {{ include "cortex.extraconfigsecret" . | quote }}
+        {{- end }}
         - name: etc-cortex
           emptyDir: {}
         {{- if .Values.elasticsearch.tls }}
@@ -45,11 +50,6 @@ spec:
           emptyDir: {}
         {{- end }}
         {{- include "cortex.wsCACertVolumes" . | nindent 8 }}
-        {{- if .Values.extraCortexConfig.enabled }}
-        - name: extra-config
-          secret:
-            secretName: {{ .Values.extraCortexConfig.secretName | quote }}
-        {{- end }}
       initContainers:
         # This templating, done at runtime rather than install time,
         # is done so that the non-secret parts of the config file can
@@ -127,6 +127,10 @@ spec:
           volumeMounts:
             - name: etc-cortex
               mountPath: /etc/cortex
+            {{- if .Values.extraCortexConfigurations }}
+            - mountPath: /etc/cortex/extra
+              name: etc-cortex-extra
+            {{- end }}
             {{- if .Values.jobIOStorage.pvc.enabled }}
             - name: job-io
               {{- /* If the default value of JOB_DIRECTORY changes in the Cortex entrypoint script, change this */}}
@@ -135,10 +139,6 @@ spec:
             - name: es-trust-store
               mountPath: {{ include "cortex.esTrustStoreDir" . | quote }}
             {{ include "cortex.wsCACertVolumeMounts" . | nindent 12 }}
-            {{- if .Values.extraCortexConfig.enabled }}
-            - name: extra-config
-              mountPath: /etc/cortex/extra
-            {{- end }}
           env:
             # we did the config in our configmap and initcontainers
             - name: no_config
