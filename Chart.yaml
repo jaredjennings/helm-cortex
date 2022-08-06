@@ -2,7 +2,7 @@ apiVersion: v2
 name: cortex
 description: 'Unofficial Helm chart for Cortex, "a Powerful Observable Analysis and Active Response Engine"'
 type: application
-version: 1.0.0
+version: 1.0.1
 appVersion: "3.1.6-jj1"
 # This is for the networking.k8s.io/v1 API used by the Ingress. see #3
 kubeVersion: '>=1.19.0'
